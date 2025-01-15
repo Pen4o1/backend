@@ -23,7 +23,22 @@ class GoogleController extends Controller
      */
     public function redirectToGoogle()
     {
-        return Socialite::driver('google')->scopes(['profile', 'https://www.googleapis.com/auth/user.birthday.read', 'https://www.googleapis.com/auth/user.gender.read'])->stateless()->redirect();
+        $platform = $request->input('platform', 'web');
+        $clientId = config("services.google.{$platform}_client_id");
+        $clientSecret = config("services.google.client_secret");
+        $redirectUri = $platform === 'ios'
+            ? 'com.googleusercontent.apps.918043959140-fo9rk75odt49nbmsbdgothp1pqlhh5kv:/oauth2redirect'
+            : config("services.google.{$platform}_redirect");
+
+        return Socialite::driver('google')
+        ->scopes(['profile', 'https://www.googleapis.com/auth/user.birthday.read', 'https://www.googleapis.com/auth/user.gender.read'])
+        ->with([
+        'clientId' => $clientId, 
+        'clientSecret' => $clientSecret, 
+        'redirectUri' => $redirectUri
+        ])
+        ->stateless()
+        ->redirect();
     }
 
     /**
