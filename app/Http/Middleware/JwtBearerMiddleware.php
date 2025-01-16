@@ -11,7 +11,6 @@ class JwtBearerMiddleware
 {
     public function handle($request, Closure $next)
     {
-        // Check for Authorization header with Bearer token
         $authHeader = $request->header('Authorization');
 
         if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
