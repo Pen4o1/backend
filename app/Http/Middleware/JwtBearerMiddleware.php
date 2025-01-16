@@ -7,18 +7,21 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
-
-class JwtCookieMiddleware
+class JwtBearerMiddleware
 {
     public function handle($request, Closure $next)
     {
-        if ($request->hasCookie('jwt_token')) {
-            $token = $request->cookie('jwt_token');
+        // Check for Authorization header with Bearer token
+        $authHeader = $request->header('Authorization');
+
+        if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            $token = $matches[1]; // Extract the token
             try {
+                // Set and authenticate token
                 JWTAuth::setToken($token);
                 $user = JWTAuth::authenticate();
                 auth()->setUser($user);
-                \Log::info('Authenticated User:', ['user' => $user]); // Add this line for debugging
+                \Log::info('Authenticated User:', ['user' => $user]); // Debugging logs
 
             } catch (\Exception $e) {
                 \Log::error('Token Authentication Error:', ['error' => $e->getMessage()]);

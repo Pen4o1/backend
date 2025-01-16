@@ -9,7 +9,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Models\User;
 use App\Models\UserGoal;
 use Illuminate\Support\Facades\Log;
-use App\Http\Middleware\JwtCookieMiddleware;
+use App\Http\Middleware\JwtBearerMiddleware;
 use App\Http\Controllers\Auth\GoalController;
 use App\Http\Controllers\Auth\DailyMacrosController;
 use App\Http\Controllers\Auth\GoogleController;
@@ -29,13 +29,15 @@ Route::get('/foods/search', [FatSecretController::class, 'search']);
 
 Route::post('/validate/token', function (Request $request) {
     try {
-        $token = $request->cookie('jwt_token');
+        // Retrieve the Bearer token from the Authorization header
+        $token = $request->bearerToken();
 
         if (!$token) {
             throw new \Exception('Token not provided');
         }
 
-        $user = auth('api')->setToken($token)->user();
+        // Authenticate the user with the token
+        $user = JWTAuth::setToken($token)->authenticate();
 
         if (!$user) {
             throw new \Exception('Invalid token or user not found');
@@ -57,7 +59,7 @@ Route::post('/validate/token', function (Request $request) {
     }
 });
 
-Route::middleware([JwtCookieMiddleware::class])->group(function () {
+Route::middleware([JwtBearerMiddleware::class])->group(function () {
     Route::get('/profile/status', [ProfileCompleteCotroller::class, 'getProfileStatus']);
     Route::post('/update/profile', [ProfileCompleteCotroller::class, 'completeProfile']);
     Route::post('/save/goal', [GoalController::class, 'saveGoal']);

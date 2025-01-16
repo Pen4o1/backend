@@ -135,22 +135,19 @@ class RegisterController extends Controller
 
         $token = Auth::fromUser($user);
 
-        $cookie = cookie(
-            'jwt_token',
-            $token,
-            60, 
-            '/', 
-            null,
-            true, // secure 
-            true, // HttpOnly
-            false, // SameSite 
-            'None'
-        );
+        try {
+            $token = JWTAuth::fromUser($user);
+        } catch (JWTException $e) {
+            return response()->json([
+                'message' => 'Could not create token.',
+            ], 500);
+        }
 
         return response()->json([
             'message' => 'Registration complete',
             'user' => $user,
-            'redirect_url' => '/home'
-        ], 201)->cookie($cookie);
+            'token' => $token, 
+            'redirect_url' => '/home',
+        ], 201);
     }
 }
