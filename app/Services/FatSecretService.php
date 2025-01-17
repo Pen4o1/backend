@@ -152,8 +152,8 @@ class FatSecretService
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $token,
         ])->get($this->apiUrl, [
-            'method' => 'recipes.get',
-            'food.get.v4' => $foodId,
+            'method' => 'food.get.v4',
+            'food_id' => $foodId,
             'format' => 'json',
         ]);
 

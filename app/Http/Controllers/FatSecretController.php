@@ -40,9 +40,11 @@ class FatSecretController extends Controller
 
         try {
             $result = $this->fatSecretService->findFoodByBarcode($barcode);
-            
-            $food = $this->fatSecretService->getFoodById($result);
-            return 
+            $food_id = $result['food_id']['value'];
+            $food = $this->fatSecretService->getFoodById($food_id);
+            return response()->json([
+                'food' => $food
+            ]);
         } catch (\Exception $e) {
             \Log::error('Error finding food by barcode:', ['message' => $e->getMessage()]);
             return response()->json(['error' => $e->getMessage()], 500);
