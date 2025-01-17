@@ -25,7 +25,7 @@ class FatSecretService
             'grant_type' => 'client_credentials',
             'client_id' => $this->clientId,
             'client_secret' => $this->clientSecret,
-            'scope' => 'basic premier',
+            'scope' => 'basic premier barcode',
         ]);
 
         if ($response->successful()) {
@@ -143,6 +143,26 @@ class FatSecretService
 
         throw new \Exception('Failed to fetch recipe details: ' . $response->body());
     }
+
+    public function findFoodByBarcode($barcode)
+    {
+        $token = $this->getAccessToken();
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->get($this->apiUrl, [
+            'method' => 'food.find_id_for_barcode',
+            'format' => 'json',
+            'barcode' => $barcode,
+        ]);
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
+        throw new \Exception('Failed to find food by barcode: ' . $response->body());
+    }
+
 
     /* this is for barcodes 
     public function searchFoodsByBarcode($query)
