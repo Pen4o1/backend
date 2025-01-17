@@ -40,16 +40,9 @@ class FatSecretController extends Controller
 
         try {
             $result = $this->fatSecretService->findFoodByBarcode($barcode);
-
-            // Log the food ID
-            if (isset($result['food_id']['value'])) {
-                $foodId = $result['food_id']['value'];
-                \Log::info('Food ID retrieved for barcode:', ['barcode' => $barcode, 'food_id' => $foodId]);
-
-                return response()->json(['food_id' => $foodId]);
-            } else {
-                return response()->json(['error' => 'No food ID found for the provided barcode'], 404);
-            }
+            
+            $food = $this->fatSecretService->getFoodById($result);
+            return 
         } catch (\Exception $e) {
             \Log::error('Error finding food by barcode:', ['message' => $e->getMessage()]);
             return response()->json(['error' => $e->getMessage()], 500);

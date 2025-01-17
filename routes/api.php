@@ -26,7 +26,7 @@ Route::post('/get-meal', [MealPlanerController::class, 'getMeal']);
 Route::post('/register', [RegisterController::class, 'Register']);
 Route::post('/login', [LoginController::class, 'Login']);
 Route::get('/foods/search', [FatSecretController::class, 'search']);
-Route::post('/foods/barcode/{barcode}', [FatSecretController::class, 'logFoodIdByBarcode']);
+Route::post('/foods/barcode', [FatSecretController::class, 'logFoodIdByBarcode']);
 
 Route::post('/validate/token', function (Request $request) {
     try {

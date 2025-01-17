@@ -144,6 +144,27 @@ class FatSecretService
         throw new \Exception('Failed to fetch recipe details: ' . $response->body());
     }
 
+
+    public function getFoodById($foodId)
+    {
+        $token = $this->getAccessToken();
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->get($this->apiUrl, [
+            'method' => 'recipes.get',
+            'food.get.v4' => $foodId,
+            'format' => 'json',
+        ]);
+
+        if ($response->successful()) {
+            return $response->json(); 
+        }
+
+        throw new \Exception('Failed to fetch food details: ' . $response->body());
+    }
+
+
     public function findFoodByBarcode($barcode)
     {
         $token = $this->getAccessToken();
