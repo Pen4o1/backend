@@ -167,6 +167,10 @@ class FatSecretService
 
     public function findFoodByBarcode($barcode)
     {
+        $gtin13 = $this->convertToGtin13($barcode);
+
+        \Log::info($gtin13);
+
         $token = $this->getAccessToken();
 
         $response = Http::withHeaders([
@@ -174,15 +178,33 @@ class FatSecretService
         ])->get($this->apiUrl, [
             'method' => 'food.find_id_for_barcode',
             'format' => 'json',
-            'barcode' => $barcode,
+            'barcode' => $gtin13,
         ]);
 
+        \Log::info($response);
         if ($response->successful()) {
             return $response->json();
         }
 
         throw new \Exception('Failed to find food by barcode: ' . $response->body());
     }
+
+    private function convertToGtin13($barcode)
+{
+    // If UPC-A add leading zero to make it GTIN-13
+    if (strlen($barcode) == 12) {
+        return '0' . $barcode;
+    }
+
+    // If UPC-E, expand to UPC-A, then convert to GTIN-13
+    if (strlen($barcode) == 8) {
+        $upcA = $this->convertUpcEToUpcA($barcode);
+        return '0' . $upcA;
+    }
+
+    // Return the barcode as-is if already GTIN-13
+    return $barcode;
+}
 
 
     /* this is for barcodes 
