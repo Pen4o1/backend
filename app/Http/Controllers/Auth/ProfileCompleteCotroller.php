@@ -53,6 +53,7 @@ class ProfileCompleteCotroller extends Controller
             'kilos' => 'nullable|numeric|min:1',
             'height' => 'nullable|numeric|min:1',
             'last_name' => 'nullable|string|max:255',
+            'first_name' => 'nullable|string|max:255',
             'gender' => 'nullable|in:male,female',
         ]);
         $validatedData['compleated'] = true;
