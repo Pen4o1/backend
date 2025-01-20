@@ -18,7 +18,7 @@ use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\Auth\ShoppingListController;
 use App\Http\Controllers\Auth\ProfileController;
 use Tymon\JWTAuth\Http\Middleware\Authenticate as JwtAuthenticate;
-
+use App\Http\Controllers\VerificationController;
 
 
 Route::get('/recipes/search', [RecipeController::class, 'search']);
@@ -27,6 +27,8 @@ Route::post('/register', [RegisterController::class, 'Register']);
 Route::post('/login', [LoginController::class, 'Login']);
 Route::get('/foods/search', [FatSecretController::class, 'search']);
 Route::post('/foods/barcode', [FatSecretController::class, 'logFoodIdByBarcode']);
+Route::post('/send-verification-code', [VerificationController::class, 'sendVerificationCode']);
+Route::post('/verify-email', [VerificationController::class, 'verifyEmail']);
 
 Route::post('/validate/token', function (Request $request) {
     try {
@@ -47,7 +49,9 @@ Route::post('/validate/token', function (Request $request) {
         return response()->json([
             'valid' => true,
             'user' => $user,
+            'email' => $user->email,
             'compleated' => $user->compleated,
+            'email_verified_at' => $user->email_verified_at,
         ]);
 
     } catch (\Exception $e) {

@@ -7,9 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
-
-
-
 class ProfileController extends Controller
 {
     public function getProfileStatus(Request $request)
@@ -44,7 +41,7 @@ class ProfileController extends Controller
 
     public function addToProfile(Request $request)
     {
-        $user = Auth::user();
+        $user = JWTAuth::user();
 
         if (!$user) {
             return response()->json(['error' => 'User not authenticated'], 401);
@@ -70,7 +67,7 @@ class ProfileController extends Controller
     }
 
     public function getProfile(Request $request) {
-        $user = Auth::user();
+        $user = JWTAuth::user();
 
         return response()->json([
             'first_name' => $user->first_name,

@@ -132,9 +132,7 @@ class RegisterController extends Controller
             'gender' => $request->gender, 
             'compleated' => true,
         ]);
-
-        $token = Auth::fromUser($user);
-
+        
         try {
             $token = JWTAuth::fromUser($user);
         } catch (JWTException $e) {

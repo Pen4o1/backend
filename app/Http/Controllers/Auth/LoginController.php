@@ -21,7 +21,7 @@ class LoginController extends Controller
         
 
         if (Auth::attempt($request->only('email', 'password'))) {
-            $user = Auth::user();
+            $user = JWTAuth::user();
 
             try {
                 $token = JWTAuth::fromUser($user);

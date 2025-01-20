@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Services\FatSecretService;
+use Tymon\JWTAuth\Facades\JWTAuth;
+
 
 class MealPlanerController extends Controller
 {
@@ -24,7 +26,7 @@ class MealPlanerController extends Controller
             return response()->json(['error' => 'Meals per day must be between 3 and 6'], 400);
         }
 
-        $user = Auth::user();
+        $user = JWTAuth::user();
 
         if (!$user || !$user->goal()->value('caloric_target')) {
             return response()->json(['error' => 'Calorie goal not set for the user'], 400);
@@ -297,7 +299,7 @@ class MealPlanerController extends Controller
 
     public function getMealPlan()
     {
-        $user = Auth::user();
+        $user = JWTAuth::user();
         $mealPlan = $user->meal_plan('user_id')->first();
 
         if (!$mealPlan) {

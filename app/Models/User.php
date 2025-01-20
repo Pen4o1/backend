@@ -14,10 +14,10 @@ use App\Models\UserGoal;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\MealPlans;
 use App\Models\DailyCal;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\EmailVerification;
 
-
-
-class User extends Authenticatable implements JWTSubject
+class User extends Authenticatable implements MustVerifyEmail, JWTSubject 
 {
     use HasApiTokens;
     use HasFactory;
@@ -104,6 +104,11 @@ class User extends Authenticatable implements JWTSubject
         ];
     }
 
+    public function emailVerification()
+    {
+        return $this->hasOne(EmailVerification::class, 'email', 'email');
+    }
+
     public function goal(): HasOne
     {
         return $this->hasOne(UserGoal::class); // If each user has one goal
@@ -122,5 +127,17 @@ class User extends Authenticatable implements JWTSubject
     public function daily_macros(): HasOne
     {
         return $this->hasOne(DailyCal::class);
+    }
+
+    public function hasVerifiedEmail()
+    {
+        $verification = $this->emailVerification;
+
+        // Check if there's an existing code and if it has expired
+        if ($verification && $verification->expires_at > now()) {
+            return true;
+        }
+
+        return false;
     }
 }

@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Tymon\JWTAuth\Facades\JWTAuth;
+
 
 class ShoppingListController extends Controller
 {
     public function getShoppingPlan()
     {
-        $user = Auth::user();
+        $user = JWTAuth::user();
 
         $mealPlan = $user->meal_plan()->value('plan');
 

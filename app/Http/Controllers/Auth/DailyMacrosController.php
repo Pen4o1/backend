@@ -6,6 +6,8 @@ use Carbon\Carbon;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Tymon\JWTAuth\Facades\JWTAuth;
+
 
 
 class DailyMacrosController extends Controller
@@ -18,7 +20,7 @@ class DailyMacrosController extends Controller
             '*.carbohydrate' => 'required|numeric|min:0'
         ]);
 
-        $user = Auth::user();
+        $user = JWTAuth::user();
         $date = Carbon::today();
     
         $dailyMacros = $user->daily_macros()->firstOrCreate(
@@ -44,7 +46,7 @@ class DailyMacrosController extends Controller
     }
 
     public function getDailyMacros(Request $request) {
-        $user = Auth::user();
+        $user = JWTAuth::user();
 
         $date = Carbon::today();
 

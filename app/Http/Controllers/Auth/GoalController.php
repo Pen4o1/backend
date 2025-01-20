@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Tymon\JWTAuth\Facades\JWTAuth;
+
 
 class GoalController extends Controller
 {
@@ -20,7 +22,7 @@ class GoalController extends Controller
         $activityLevel = $validated['activityLevel'];
         $goal = $validated['goal'];
 
-        $user = Auth::user();
+        $user = JWTAuth::user();
 
         $weight = $user->kilos;
         $height = $user->height;
