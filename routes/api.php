@@ -3,13 +3,11 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\ProfileCompleteCotroller;
 use Illuminate\Support\Facades\Route;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Models\User;
 use App\Models\UserGoal;
 use Illuminate\Support\Facades\Log;
-use App\Http\Middleware\JwtBearerMiddleware;
 use App\Http\Controllers\Auth\GoalController;
 use App\Http\Controllers\Auth\DailyMacrosController;
 use App\Http\Controllers\Auth\GoogleController;
@@ -19,6 +17,8 @@ use App\Http\Controllers\Auth\TestForRecipes;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\Auth\ShoppingListController;
 use App\Http\Controllers\Auth\ProfileController;
+use Tymon\JWTAuth\Http\Middleware\Authenticate as JwtAuthenticate;
+
 
 
 Route::get('/recipes/search', [RecipeController::class, 'search']);
@@ -60,9 +60,10 @@ Route::post('/validate/token', function (Request $request) {
     }
 });
 
-Route::middleware([JwtBearerMiddleware::class])->group(function () {
-    Route::get('/profile/status', [ProfileCompleteCotroller::class, 'getProfileStatus']);
-    Route::post('/update/profile', [ProfileCompleteCotroller::class, 'completeProfile']);
+Route::middleware([JwtAuthenticate::class])->group(function () {
+    Route::get('/profile/status', [ProfileController::class, 'getProfileStatus']);
+    Route::get('/user/profile', [ProfileController::class, 'getProfile']);
+    Route::post('/update/profile', [ProfileController::class, 'addToProfile']);
     Route::post('/save/goal', [GoalController::class, 'saveGoal']);
     Route::post('/save/daily/macros', [DailyMacrosController::class, 'storeCal']);
     Route::get('/get/daily/macros', [DailyMacrosController::class, 'getDailyMacros']);
@@ -70,7 +71,6 @@ Route::middleware([JwtBearerMiddleware::class])->group(function () {
     Route::get('/get/meal/plan', [MealPlanerController::class, 'getMealPlan']); 
     Route::get('/get/shopping/list', [ShoppingListController::class, 'getShoppingPlan']);
     Route::post('/get-meal', [TestForRecipes::class, 'getMeal']);
-    Route::get('/user/profile', [ProfileController::class, 'getProfile']);
 });
 
 

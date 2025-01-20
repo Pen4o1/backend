@@ -86,30 +86,6 @@ class FatSecretService
         throw new \Exception('Failed to search recipes.');
     }
 
-    public function naturalLanguage($query)
-    {
-        $endpoint = 'natural-language-processing/v1';
-        $url = rtrim($this->apiUrl, '/') . '/' . ltrim($endpoint, '/');
-
-        $params = array_merge([
-            'user_input' => $query,
-            'language' => 'en',
-            'include_food_data' => true,
-            'max_results' => 50,
-        ]);
-
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->getAccessToken(),
-            'Content-Type' => 'application/json',
-        ])->post($url, $params);
-
-        if ($response->successful()) {
-            \Log::info('API Response', $response->json()); // Log the full response
-            return $this->transformResponse($response->json());
-        }
-
-        throw new \Exception('Error fetching foods: ' . $response->body());
-    }
 
     private function transformResponse($data)
     {
@@ -189,22 +165,76 @@ class FatSecretService
         throw new \Exception('Failed to find food by barcode: ' . $response->body());
     }
 
+
     private function convertToGtin13($barcode)
-{
-    // If UPC-A add leading zero to make it GTIN-13
-    if (strlen($barcode) == 12) {
-        return '0' . $barcode;
+    {
+        // If UPC-A add leading zero to make it GTIN-13
+        if (strlen($barcode) == 12) {
+            return '0' . $barcode;
+        }
+
+        // If UPC-E, expand to UPC-A, then convert to GTIN-13
+        if (strlen($barcode) == 8) {
+            $upcA = $this->convertUpcEToUpcA($barcode);
+            return '0' . $upcA;
+        }
+
+        // Return the barcode as-is if already GTIN-13
+        return $barcode;
     }
 
-    // If UPC-E, expand to UPC-A, then convert to GTIN-13
-    if (strlen($barcode) == 8) {
-        $upcA = $this->convertUpcEToUpcA($barcode);
-        return '0' . $upcA;
-    }
+    
+    private function convertUpcEToUpcA($upcE)
+    {
+        // Ensure the UPC-E has a valid length
+        if (strlen($upcE) !== 8) {
+            throw new \InvalidArgumentException('UPC-E must be exactly 8 digits.');
+        }
 
-    // Return the barcode as-is if already GTIN-13
-    return $barcode;
-}
+        // Extract the components of the UPC-E
+        $manufacturerCode = substr($upcE, 1, 5); // Characters 2 to 6 (5 digits)
+        $lastDigit = $upcE[6]; // 7th digit (index 6)
+        $checkDigit = $upcE[7]; // 8th digit (index 7)
+
+        // Initialize the UPC-A variable
+        $upcA = '';
+
+        // Expand UPC-E to UPC-A based on the last digit rules
+        switch ($lastDigit) {
+            case '0':
+            case '1':
+            case '2':
+                // Manufacturer: XXX0X -> XXX00X
+                $upcA = $manufacturerCode[0] . $manufacturerCode[1] . $manufacturerCode[2] .
+                    $lastDigit . '0' . $manufacturerCode[3] . $manufacturerCode[4];
+                break;
+            case '3':
+                // Manufacturer: XXXX -> XXXX00
+                $upcA = $manufacturerCode[0] . $manufacturerCode[1] . $manufacturerCode[2] .
+                    $manufacturerCode[3] . '000' . $manufacturerCode[4];
+                break;
+            case '4':
+                // Manufacturer: XXXX -> XXXX0000
+                $upcA = $manufacturerCode[0] . $manufacturerCode[1] . $manufacturerCode[2] .
+                    $manufacturerCode[3] . $manufacturerCode[4] . '0000';
+                break;
+            default:
+                // Last digit: 5-9 -> XXXX00000
+                $upcA = $manufacturerCode[0] . $manufacturerCode[1] . $manufacturerCode[2] .
+                    $manufacturerCode[3] . $manufacturerCode[4] . '0000' . $lastDigit;
+                break;
+        }
+
+        // Append the check digit
+        $upcA .= $checkDigit;
+
+        // Validate the result (optional)
+        if (strlen($upcA) !== 12) {
+            throw new \RuntimeException('Failed to convert UPC-E to UPC-A. Invalid result.');
+        }
+
+        return $upcA;
+    }
 
 
     /* this is for barcodes 

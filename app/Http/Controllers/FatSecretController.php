@@ -40,8 +40,10 @@ class FatSecretController extends Controller
 
         try {
             $result = $this->fatSecretService->findFoodByBarcode($barcode);
+            \Log::info($result);
             $food_id = $result['food_id']['value'];
             $food = $this->fatSecretService->getFoodById($food_id);
+            \Log::info($food);
             return response()->json([
                 'food' => $food
             ]);
