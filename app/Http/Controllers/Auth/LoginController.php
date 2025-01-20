@@ -18,9 +18,7 @@ class LoginController extends Controller
             'password' => 'required|min:8',
         ]);
 
-        
-
-        if (Auth::attempt($request->only('email', 'password'))) {
+        if (JWTAuth::attempt($request->only('email', 'password'))) {
             $user = JWTAuth::user();
 
             try {
