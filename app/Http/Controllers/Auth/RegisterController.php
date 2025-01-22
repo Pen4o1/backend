@@ -145,7 +145,6 @@ class RegisterController extends Controller
             'message' => 'Registration complete',
             'user' => $user,
             'token' => $token, 
-            'redirect_url' => '/home',
         ], 201);
     }
 }

@@ -9,27 +9,26 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
-
 class GoalController extends Controller
 {
     public function saveGoal(Request $request)
     {
         $validated = $request->validate([
             'activityLevel' => 'required|string|in:sedentary,lightly_active,moderately_active,very_active,extra_active',
-            'goal' => 'required|string|in:maintain,lose,gain',
+            'targetWeight' => 'required|numeric|min:1',
         ]);
 
         $activityLevel = $validated['activityLevel'];
-        $goal = $validated['goal'];
+        $targetWeight = $validated['targetWeight'];
 
         $user = JWTAuth::user();
 
-        $weight = $user->kilos;
+        $currentWeight = $user->kilos;
         $height = $user->height;
         $birthdate = $user->birthdate;
         $gender = $user->gender;
 
-        if (!$weight || !$height || !$birthdate || !$gender) {
+        if (!$currentWeight || !$height || !$birthdate || !$gender) {
             return response()->json([
                 'message' => 'User data (weight, height, birthdate, gender) is incomplete.',
             ], 400);
@@ -37,26 +36,57 @@ class GoalController extends Controller
 
         $age = Carbon::parse($birthdate)->age;
 
-        // BMR (Basal Metabolic Rate) ny Mifflin-St Jeor
-        $bmr = $this->calculateBMR($weight, $height, $age, $gender);
+        // Calculate BMR (Basal Metabolic Rate) using Mifflin-St Jeor formula
+        $bmr = $this->calculateBMR($currentWeight, $height, $age, $gender);
+
         // Activity multiplier based on activity level
         $activityMultiplier = $this->getActivityMultiplier($activityLevel);
+
         // Maintenance calories (BMR * activity multiplier)
         $maintenanceCalories = $bmr * $activityMultiplier;
+
+        // Determine goal and adjust calories using the provided function
+        if ($targetWeight < $currentWeight) {
+            $goal = 'lose';
+        } elseif ($targetWeight > $currentWeight) {
+            $goal = 'gain';
+        } else {
+            $goal = 'maintain';
+        }
+
         $calories = $this->adjustCaloriesForGoal($maintenanceCalories, $goal);
 
+        // Save the target weight and caloric target in the database
         $user->goal()->updateOrCreate(
             ['user_id' => $user->id],
             [
                 'activity_level' => $activityLevel,
                 'goal' => $goal,
-                'caloric_target' => $calories, 
+                'target_weight' => $targetWeight,
+                'caloric_target' => $calories,
             ]
         );
 
+        // Calculate time to reach the target weight
+        $caloricDifferencePerDay = abs($calories - $maintenanceCalories);
+        $weeklyCaloricChange = $caloricDifferencePerDay * 7;
+
+        if ($weeklyCaloricChange > 0) {
+            $weightDifference = abs($targetWeight - $currentWeight);
+            $caloriesPerKg = 7700; // 1kg of fat = ~7700 calories
+            $totalCaloriesNeeded = $weightDifference * $caloriesPerKg;
+
+            $weeksToGoal = $totalCaloriesNeeded / $weeklyCaloricChange;
+            $daysToGoal = ceil($weeksToGoal * 7); // Convert weeks to days
+        } else {
+            $daysToGoal = 0; // No caloric difference; user is already maintaining weight
+        }
+
         return response()->json([
-            'message' => 'Goal saved successfully.',
-            'calories' => $calories,  
+            'message' => 'Target weight saved successfully.',
+            'goal' => $goal,
+            'calories' => $calories,
+            'daysToGoal' => $daysToGoal,
         ]);
     }
 
@@ -85,11 +115,11 @@ class GoalController extends Controller
     private function adjustCaloriesForGoal($maintenanceCalories, $goal)
     {
         if ($goal === 'lose') {
-            return $maintenanceCalories - 0.2 * $maintenanceCalories; // can change in the future based on how fast the user want to lose weight
+            return $maintenanceCalories - 0.2 * $maintenanceCalories; // 20% caloric deficit
         } elseif ($goal === 'gain') {
-            return $maintenanceCalories + 0.2 * $maintenanceCalories; // can change in the future based on how fast the user want to gain weight
+            return $maintenanceCalories + 0.2 * $maintenanceCalories; // 20% caloric surplus
         }
 
-        return $maintenanceCalories;
+        return $maintenanceCalories; // Maintenance level
     }
 }

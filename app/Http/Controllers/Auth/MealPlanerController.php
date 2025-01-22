@@ -104,6 +104,7 @@ class MealPlanerController extends Controller
                         'calories.to' => intval(round($caloriesTo / 2)),
                         'sort_by' => 'caloriesPerServingAscending',
                     ];
+                    \Log::info($adjustedFilters);   
 
                     while ($combinedCalories < $caloriesFrom) {
                         $additionalRecipes = $this->getRecipes($adjustedFilters);
