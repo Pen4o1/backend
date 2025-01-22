@@ -8,7 +8,6 @@ use App\Mail\VerificationMail;
 use App\Models\EmailVerification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class VerificationController extends Controller
@@ -20,17 +19,14 @@ class VerificationController extends Controller
             'email' => 'required|email|exists:users,email',
         ]);
 
-        // Generate a random verification code
-        $verificationCode = Str::random(6); // You can customize this length or format
-        $expiresAt = Carbon::now()->addMinutes(10); // Expire the code after 10 minutes
+        $verificationCode = random_int(100000, 999999); 
+        $expiresAt = Carbon::now()->addMinutes(10); 
 
-        // Store the verification code in the EmailVerification table
         $verification = EmailVerification::updateOrCreate(
             ['email' => $request->email],
             ['verification_code' => $verificationCode, 'expires_at' => $expiresAt]
         );
 
-        // Send the verification email
         Mail::to($request->email)->send(new VerificationMail($verificationCode));
 
         return response()->json(['message' => 'Verification code sent successfully.']);
@@ -62,7 +58,6 @@ class VerificationController extends Controller
         $user->email_verified_at = now();
         $user->save();
 
-        // Optionally, delete the verification code after successful verification
         $verification->delete();
 
         return response()->json(['message' => 'Email verified successfully.']);
