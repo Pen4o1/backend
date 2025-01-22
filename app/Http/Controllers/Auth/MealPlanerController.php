@@ -78,18 +78,12 @@ class MealPlanerController extends Controller
             $recipeAdded = false;
 
             try {
+                // Attempt to add a single recipe
                 foreach ($recipes as $recipe) {
-                    if (!isset($recipe['recipe_id'])) {
-                        \Log::warning("Recipe missing 'recipe_id'", ['recipe' => $recipe]);
+                    if (!isset($recipe['recipe_id']) || !isset($recipe['recipe_nutrition']['calories'])) {
+                        \Log::warning("Invalid recipe data", ['recipe' => $recipe]);
                         continue;
                     }
-
-                    if (!isset($recipe['recipe_nutrition']['calories'])) {
-                        \Log::warning("Recipe missing 'calories' key in 'recipe_nutrition'", ['recipe' => $recipe]);
-                        continue;
-                    }
-
-                    $calories = intval($recipe['recipe_nutrition']['calories']);
 
                     if (!in_array($recipe['recipe_id'], $usedRecipeIds)) {
                         $mealPlan[] = $recipe;
@@ -99,26 +93,24 @@ class MealPlanerController extends Controller
                     }
                 }
 
-                // If no single recipe was added, attempt to find combined recipes
+                // If single recipe isnt found to attempt to combine recipes
                 if (!$recipeAdded) {
-                    \Log::info("No single recipe found for meal, attempting combined recipes.");
-                    $newCaloriesFrom = intval(round($caloriesFrom / 2));
-                    $newCaloriesTo = intval(round($caloriesTo / 2));
-                    $additionalFilters = [
-                        'calories.from' => $newCaloriesFrom,
-                        'calories.to' => $newCaloriesTo,
-                        'sort_by' => 'caloriesPerServingAscending',
-                    ];
-                    $additionalRecipes = $this->getRecipes($additionalFilters);
+                    \Log::info("No single recipe found for meal, attempting to find combined recipes.");
 
                     $combinedCalories = 0;
                     $selectedRecipes = [];
+                    $adjustedFilters = [
+                        'calories.from' => intval(round($caloriesFrom / 2)),
+                        'calories.to' => intval(round($caloriesTo / 2)),
+                        'sort_by' => 'caloriesPerServingAscending',
+                    ];
 
-                    // Combine recipes to reach the calorie goal
-                    while ($combinedCalories < $caloriesFrom && !empty($additionalRecipes)) {
+                    while ($combinedCalories < $caloriesFrom) {
+                        $additionalRecipes = $this->getRecipes($adjustedFilters);
+
                         foreach ($additionalRecipes as $additionalRecipe) {
                             if (!isset($additionalRecipe['recipe_id']) || !isset($additionalRecipe['recipe_nutrition']['calories'])) {
-                                \Log::warning("Skipping invalid additional recipe", ['recipe' => $additionalRecipe]);
+                                \Log::warning("Skipping invalid recipe during combination", ['recipe' => $additionalRecipe]);
                                 continue;
                             }
 
@@ -128,18 +120,25 @@ class MealPlanerController extends Controller
                                 $selectedRecipes[] = $additionalRecipe;
                                 $usedRecipeIds[] = $additionalRecipe['recipe_id'];
 
+                                // Break if the combined calories are within the target range
                                 if ($combinedCalories >= $caloriesFrom && $combinedCalories <= $caloriesTo) {
-                                    break;
+                                    break 2;
                                 }
                             }
                         }
 
-                        // Break the loop if no more recipes can be added
-                        if (empty($additionalRecipes)) {
+                        // Adjust calorie range and make another API call if needed
+                        $adjustedFilters['calories.from'] = max(1, intval(round($adjustedFilters['calories.from'] / 2)));
+                        $adjustedFilters['calories.to'] = max(1, intval(round($adjustedFilters['calories.to'] / 2)));
+
+                        // Stop attempting if the calorie range is too low
+                        if ($adjustedFilters['calories.from'] < 50) {
+                            \Log::warning("Calorie range too low to find recipes");
                             break;
                         }
                     }
 
+                    // If combined recipes meet the calorie requirements, add them to the plan
                     if ($combinedCalories >= $caloriesFrom && $combinedCalories <= $caloriesTo) {
                         $mealPlan[] = [
                             'combined_recipes' => $selectedRecipes,
@@ -149,7 +148,7 @@ class MealPlanerController extends Controller
                     }
                 }
 
-                // If still no recipe is found, reuse a random recipe from the plan
+                // Reuse an existing recipe if no new recipes are found
                 if (!$recipeAdded && !empty($mealPlan)) {
                     $mealPlan[] = $mealPlan[array_rand($mealPlan)];
                     $recipeAdded = true;
@@ -174,110 +173,6 @@ class MealPlanerController extends Controller
 
         return $mealPlan;
     }
-
-    /*
-    THIS IS A TEST  with added limmit of attempts(5) and dynamic range adjustment
-
-    private function getMealPlanByCalories($mealsPerDay, $caloriesFrom, $caloriesTo)
-    {
-        $mealPlan = [];
-        $usedRecipeIds = [];
-        $caloriesFrom = intval(round($caloriesFrom));
-        $caloriesTo = intval(round($caloriesTo));
-
-        for ($i = 0; $i < $mealsPerDay; $i++) {
-            \Log::info("Selecting recipe for meal " . ($i + 1), [
-                'calories_from' => $caloriesFrom,
-                'calories_to' => $caloriesTo,
-            ]);
-
-            $recipeAdded = false;
-            $attempts = 0;
-
-            while (!$recipeAdded && $attempts < 5) { // Limit attempts to prevent infinite loop
-                $attempts++;
-                try {
-                    $filters = [
-                        'calories.from' => $caloriesFrom,
-                        'calories.to' => $caloriesTo,
-                        'sort_by' => 'caloriesPerServingAscending',
-                    ];
-                    $recipes = $this->getRecipes($filters);
-
-                    foreach ($recipes as $recipe) {
-                        if (!isset($recipe['recipe_id']) || !isset($recipe['recipe_nutrition']['calories'])) {
-                            \Log::warning("Skipping invalid recipe", ['recipe' => $recipe]);
-                            continue;
-                        }
-
-                        if (!in_array($recipe['recipe_id'], $usedRecipeIds)) {
-                            $mealPlan[] = $recipe;
-                            $usedRecipeIds[] = $recipe['recipe_id'];
-                            $recipeAdded = true;
-                            break;
-                        }
-                    }
-
-                    // If no single recipe found, attempt to combine recipes
-                    if (!$recipeAdded) {
-                        $combinedCalories = 0;
-                        $selectedRecipes = [];
-                        foreach ($recipes as $recipe) {
-                            if (!in_array($recipe['recipe_id'], $usedRecipeIds)) {
-                                $recipeCalories = intval($recipe['recipe_nutrition']['calories']);
-                                $combinedCalories += $recipeCalories;
-                                $selectedRecipes[] = $recipe;
-                                $usedRecipeIds[] = $recipe['recipe_id'];
-
-                                if ($combinedCalories >= $caloriesFrom) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        if ($combinedCalories >= $caloriesFrom && $combinedCalories <= $caloriesTo) {
-                            $mealPlan[] = [
-                                'combined_recipes' => $selectedRecipes,
-                                'total_calories' => $combinedCalories,
-                            ];
-                            $recipeAdded = true;
-                        }
-                    }
-
-                    // If still no recipe, reduce calorie range and retry
-                    if (!$recipeAdded) {
-                        $caloriesFrom = intval(round($caloriesFrom / 2));
-                        $caloriesTo = intval(round($caloriesTo / 2));
-                        \Log::info("Reducing calorie range to retry.", [
-                            'calories_from' => $caloriesFrom,
-                            'calories_to' => $caloriesTo,
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    \Log::error("Error adding recipe for meal " . ($i + 1), [
-                        'message' => $e->getMessage(),
-                        'calories_from' => $caloriesFrom,
-                        'calories_to' => $caloriesTo,
-                    ]);
-                    break;
-                }
-            }
-
-            // Reuse a random meal if all attempts failed
-            if (!$recipeAdded && !empty($mealPlan)) {
-                $mealPlan[] = $mealPlan[array_rand($mealPlan)];
-            }
-        }
-
-        if (empty($mealPlan)) {
-            throw new \Exception('Unable to generate a meal plan. No suitable recipes found.');
-        }
-
-        return $mealPlan;
-    }
-
-    */
-
 
     private function getRecipes($filters)
     {
