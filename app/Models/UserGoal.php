@@ -13,7 +13,8 @@ class UserGoal extends Model
         'user_id', 
         'activity_level', 
         'goal', 
-        'caloric_target'
+        'caloric_target',
+        'target_weight'
     ];
 
     public function user(): BelongsTo

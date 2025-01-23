@@ -54,7 +54,7 @@ class GoalController extends Controller
             $goal = 'maintain';
         }
 
-        $calories = $this->adjustCaloriesForGoal($maintenanceCalories, $goal);
+        $calories = intval(round($this->adjustCaloriesForGoal($maintenanceCalories, $goal)));
 
         // Save the target weight and caloric target in the database
         $user->goal()->updateOrCreate(
@@ -120,6 +120,6 @@ class GoalController extends Controller
             return $maintenanceCalories + 0.2 * $maintenanceCalories; // 20% caloric surplus
         }
 
-        return $maintenanceCalories; // Maintenance level
+        return $maintenanceCalories;
     }
 }
