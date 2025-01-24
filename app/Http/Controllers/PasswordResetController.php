@@ -58,7 +58,7 @@ class PasswordResetController extends Controller
         $resetRequest = PasswordReset::where('email', $request->email)
             ->where('token', $request->code)
             ->first();
-
+        
         if (!$resetRequest) {
             return response()->json(['message' => 'Invalid or expired code.'], 400);
         }
