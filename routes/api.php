@@ -84,6 +84,7 @@ Route::middleware([JwtAuthenticate::class])->group(function () {
     Route::get('/get/meal/plan', [MealPlanerController::class, 'getMealPlan']); 
     Route::get('/get/shopping/list', [ShoppingListController::class, 'getShoppingPlan']);
     Route::post('/get-meal', [TestForRecipes::class, 'getMeal']);
+    Route::post('/change/password', [ProfileController::class, 'changePassword']);
 });
 
 

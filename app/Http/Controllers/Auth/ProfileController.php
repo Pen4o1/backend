@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
@@ -63,6 +64,21 @@ class ProfileController extends Controller
             'message' => 'Profile updated successfully',
             'user' => $user,
             'redirect_url' => '/home',
+        ]);
+    }
+
+    public function changePassword(Request $request){
+        $user = JWTAuth::user();
+
+        $request->validate([
+            'password' => 'required|min:8',
+        ]);
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password successfuly changed'
         ]);
     }
 
