@@ -91,6 +91,7 @@ Route::middleware([JwtAuthenticate::class])->group(function () {
 Route::controller(GoogleController::class)->group(function () {
     Route::get('auth/google', 'redirectToGoogle');
     Route::get('auth/callback', 'handleGoogleCallback');
+    Route::post('web/google-login', 'handleGoogleLogin');
 });
 
 Route::middleware(['auth:sanctum', \Fruitcake\Cors\HandleCors::class])->get('/user', function (Request $request) {

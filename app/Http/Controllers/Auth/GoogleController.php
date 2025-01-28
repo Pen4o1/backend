@@ -5,113 +5,29 @@ namespace App\Http\Controllers\Auth;
 use App\Models\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Support\Facades\Auth; 
-use Tymon\JWTAuth\Facades\JWTAuth;
-use Tymon\JWTAuth\Facades\JWTException;
-use Tymon\JWTAuth\Payload;
-use Tymon\JWTAuth\Claims\Collection;
-use Tymon\JWTAuth\Claims\Custom;
 use Illuminate\Support\Facades\Http;
 use Google\Client as GoogleClient;
- 
-
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Log;
 
 class GoogleController extends Controller
 {
-    /**
-     * Redirect the user to the Google authentication page.
-     */
-    public function redirectToGoogle()
+    public function handleGoogleLogin(Request $request)
     {
-        return Socialite::driver('google')->scopes(['profile', 'https://www.googleapis.com/auth/user.birthday.read', 'https://www.googleapis.com/auth/user.gender.read'])->stateless()->redirect();
-    }
+        $request->validate([
+            'id_token' => 'required',
+            'access_token' => 'required'
+        ]);
 
-    /**
-     * Handle the Google OAuth callback and retrieve user details.
-     */
-    public function handleGoogleCallback(Request $request)
-    {
-        try {
-            $googleUser = Socialite::driver('google')->stateless()->user();
-
-            $accessToken = $googleUser->token;
-
-            \Log::info('Generated accesstoken Token: ' . $accessToken);  
-
-            $response = Http::withToken($accessToken)->get('https://people.googleapis.com/v1/people/me', [
-                'personFields' => 'birthdays,genders,names',
-            ]);
-
-            $additionalData = $response->json();
-
-            $gender = collect($additionalData['genders'] ?? [])
-            ->firstWhere('metadata.primary', true)['value'] ?? null;
-
-            $birthdayData = collect($additionalData['birthdays'] ?? [])
-                ->firstWhere('metadata.primary', true)['date'] ?? null;
-
-            $birthdate = $birthdayData // to format the birthdate cause they are diff fields
-                ? sprintf('%04d-%02d-%02d', $birthdayData['year'], $birthdayData['month'], $birthdayData['day'])
-                : null;
-
-                $user = User::where('email', $googleUser->getEmail())->first();
-
-                if ($user) {        
-                        $user->update([
-                            'first_name' => $givenName ?? $googleUser->user['given_name'] ?? $googleUser->getName(), // if the user hasnt set his name to get his name
-                            'last_name' => $familyName ?? $googleUser->user['family_name'] ?? '',
-                            'gender' => $gender,
-                            'birthdate' => $birthdate,
-                            'compleated' => $user->compleated,
-                        ]);
-                } else {
-                    $user = User::create([
-                        'email' => $googleUser->getEmail(),
-                        'first_name' => $givenName ?? $googleUser->user['given_name'] ?? $googleUser->getName(),
-                        'last_name' => $familyName ?? $googleUser->user['family_name'] ?? '',
-                        'password' => null,
-                        'google_id' => $googleUser->getId(),
-                        'compleated' => false,
-                        'birthdate' => $birthdate,
-                        'gender' => $gender,
-                    ]);
-                }
-
-                try {
-                    $token = JWTAuth::fromUser($user);
-                } catch (JWTException $e) {
-                    return response()->json([
-                        'message' => 'Could not create token.',
-                    ], 500);
-                }
-    
-                return response()->json([
-                    'message' => 'Login complete',
-                    'user' => $user,
-                    'token' => $token, 
-                    'redirect_url' => '/home',
-                ], 201);
-
-        } catch (\Exception $e) {
-            return redirect()->away('http://localhost:8100/login')->with('error', 'Unable to authenticate.');
-        }
-    }
-
-    public function handleMobileGoogleLogin(Request $request)
-    {
         $idToken = $request->input('id_token');
         $accessToken = $request->input('access_token');
 
-        // Verify ID token
-        $client = new GoogleClient([
-            'client_id' => config('services.google.web_client_id') // Fallback client ID
-        ]);
-
+        // Verify ID token with multiple client IDs
+        $client = new GoogleClient();
         $allowedClientIds = [
             config('services.google.web_client_id'),
             config('services.google.ios_client_id'),
-            config('services.google.android_client_id'),
+            config('services.google.android_client_id')
         ];
 
         $payload = null;
@@ -121,7 +37,7 @@ class GoogleController extends Controller
                 $payload = $client->verifyIdToken($idToken);
                 if ($payload) break;
             } catch (\Exception $e) {
-                continue;
+                Log::error("Google token verification failed for $clientId: " . $e->getMessage());
             }
         }
 
@@ -130,49 +46,98 @@ class GoogleController extends Controller
         }
 
         // Get additional user data
-        $response = Http::withToken($accessToken)->get('https://people.googleapis.com/v1/people/me', [
-            'personFields' => 'birthdays,genders,names',
-        ]);
+        $personData = $this->getGooglePersonData($accessToken);
 
-        $additionalData = $response->json();
-
-        // Process user data (same as your existing code)
-        $gender = collect($additionalData['genders'] ?? [])
-            ->firstWhere('metadata.primary', true)['value'] ?? null;
-
-        $birthdayData = collect($additionalData['birthdays'] ?? [])
-            ->firstWhere('metadata.primary', true)['date'] ?? null;
-
-        $birthdate = $birthdayData
-            ? sprintf('%04d-%02d-%02d', $birthdayData['year'], $birthdayData['month'], $birthdayData['day'])
-            : null;
-
-        // Find or create user
+        // Create or update user
         $user = User::updateOrCreate(
             ['email' => $payload['email']],
-            [
-                'first_name' => $payload['given_name'] ?? '',
-                'last_name' => $payload['family_name'] ?? '',
-                'google_id' => $payload['sub'],
-                'gender' => $gender,
-                'birthdate' => $birthdate,
-                'password' => null,
-                'compleated' => false,
-            ]
+            $this->mapUserData($payload, $personData)
         );
 
         // Generate JWT
         try {
             $token = JWTAuth::fromUser($user);
-        } catch (JWTException $e) {
+        } catch (\Exception $e) {
+            Log::error('JWT generation failed: ' . $e->getMessage());
             return response()->json(['message' => 'Could not create token'], 500);
         }
 
         return response()->json([
-            'message' => 'Login complete',
-            'user' => $user,
             'token' => $token,
-            'redirect_url' => '/home',
+            'user' => $user,
+            'redirect_url' => $this->getRedirectUrl($user),
         ]);
+    }
+
+    private function getGooglePersonData($accessToken)
+    {
+        try {
+            $response = Http::withToken($accessToken)
+                ->timeout(10)
+                ->get('https://people.googleapis.com/v1/people/me', [
+                    'personFields' => 'birthdays,genders,names'
+                ]);
+
+            return $response->successful() ? $response->json() : [];
+        } catch (\Exception $e) {
+            Log::error('People API error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function mapUserData($payload, $personData)
+    {
+        return [
+            'first_name' => $payload['given_name'] ?? $this->extractFirstName($personData),
+            'last_name' => $payload['family_name'] ?? $this->extractLastName($personData),
+            'google_id' => $payload['sub'],
+            'gender' => $this->extractGender($personData),
+            'birthdate' => $this->extractBirthdate($personData),
+            'password' => null,
+            'compleated' => $this->shouldCompleteProfile($payload, $personData),
+        ];
+    }
+
+    private function extractFirstName($personData)
+    {
+        return collect($personData['names'] ?? [])
+            ->firstWhere('metadata.primary', true)['givenName'] ?? '';
+    }
+
+    private function extractLastName($personData)
+    {
+        return collect($personData['names'] ?? [])
+            ->firstWhere('metadata.primary', true)['familyName'] ?? '';
+    }
+
+    private function extractGender($personData)
+    {
+        return collect($personData['genders'] ?? [])
+            ->firstWhere('metadata.primary', true)['value'] ?? null;
+    }
+
+    private function extractBirthdate($personData)
+    {
+        $birthdayData = collect($personData['birthdays'] ?? [])
+            ->firstWhere('metadata.primary', true)['date'] ?? null;
+
+        return $birthdayData ? sprintf('%04d-%02d-%02d', 
+            $birthdayData['year'], 
+            $birthdayData['month'], 
+            $birthdayData['day']
+        ) : null;
+    }
+
+    private function shouldCompleteProfile($payload, $personData)
+    {
+        return isset($payload['given_name']) && 
+               isset($payload['family_name']) && 
+               $this->extractBirthdate($personData) &&
+               $this->extractGender($personData);
+    }
+
+    private function getRedirectUrl($user)
+    {
+        return $user->compleated ? '/home' : '/complete-profile';
     }
 }
