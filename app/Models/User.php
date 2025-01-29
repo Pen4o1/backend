@@ -42,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
         'google_id',
         'avatar', 
         'compleated',
+        'profile_picture',
         'gender',
     ];
 

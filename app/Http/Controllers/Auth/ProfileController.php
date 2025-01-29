@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -82,6 +83,37 @@ class ProfileController extends Controller
         ]);
     }
 
+    public function uploadProfilePicture(Request $request)
+    {
+        $user = JWTAuth::user();
+
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated'], 401);
+        }
+
+        $request->validate([
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        // Get file from request
+        $file = $request->file('profile_picture');
+
+        // Generate unique file name with timestamp
+        $fileName = 'profile_' . time() . '.' . $file->getClientOriginalExtension();
+
+        // Store the file in the storage/app/public/profile_pictures directory
+        $path = $request->file('profile_picture')->storeAs('profile_pictures', $fileName, 'public');
+
+        // Save the path in the database
+        $user->profile_picture = 'storage/profile_pictures/' . $fileName;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profile picture uploaded successfully',
+            'profile_picture_url' => asset($user->profile_picture),
+        ]);
+    }
+
     public function getProfile(Request $request) {
         $user = JWTAuth::user();
 
@@ -89,8 +121,7 @@ class ProfileController extends Controller
             'first_name' => $user->first_name,
             'last_name' => $user->last_name,
             'email' => $user->email,
+            'profile_picture' => asset($user->profile_picture), // Return full URL
         ]);
-    }
-
-    
+    }   
 }
