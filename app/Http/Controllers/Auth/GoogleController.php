@@ -87,6 +87,7 @@ class GoogleController extends Controller
 
     private function mapUserData($payload, $personData)
     {
+        \Log::info($this->extractBirthdate($personData));
         return [
             'first_name' => $payload['given_name'] ?? $this->extractFirstName($personData),
             'last_name' => $payload['family_name'] ?? $this->extractLastName($personData),
