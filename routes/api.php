@@ -61,6 +61,7 @@ Route::post('/validate/token', function (Request $request) {
             'email' => $user->email,
             'compleated' => $user->compleated,
             'email_verified_at' => $user->email_verified_at,
+            'isGoogle' => $user->google_id,
         ]);
 
     } catch (\Exception $e) {
@@ -86,6 +87,7 @@ Route::middleware([JwtAuthenticate::class])->group(function () {
     Route::post('/get-meal', [TestForRecipes::class, 'getMeal']);
     Route::post('/change/password', [ProfileController::class, 'changePassword']);
     Route::post('/upload-profile-picture', [ProfileController::class, 'uploadProfilePicture']);
+    Route::post('/update/shopping/item', [ShoppingListController::class, 'updateShoppingItem']);
 });
 
 
