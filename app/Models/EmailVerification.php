@@ -16,4 +16,9 @@ class EmailVerification extends Model
     {
         return now()->greaterThan($this->expires_at);
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'email', 'email');
+    }
 }

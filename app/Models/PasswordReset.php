@@ -12,12 +12,13 @@ class PasswordReset extends Model
 
     public $timestamps = false;
 
-    protected $primaryKey = 'email'; // Set 'email' as the primary key
-    public $incrementing = false; // Disable auto-incrementing (email is not an integer)
-    protected $keyType = 'string'; // Specify the primary key type
-
     public function isExpired()
     {
         return now()->greaterThan($this->expires_at);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'email', 'email');
     }
 }

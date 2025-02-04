@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\PasswordReset;
 use App\Mail\ResetPasswordMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -21,14 +20,14 @@ class PasswordResetController extends Controller
             'email' => 'required|email|exists:users,email',
         ]);
 
-        
         $code = rand(100000, 999999);
 
         // Set the expiration time for the code (e.g., 10 minutes)
         $expiresAt = Carbon::now()->addMinutes(10);
 
+        // Update or create the reset record with the token and expiration time
         PasswordReset::updateOrCreate(
-            [ 'email' => $request->email],
+            ['email' => $request->email],
             [
                 'token' => $code,
                 'created_at' => Carbon::now(),
@@ -67,14 +66,18 @@ class PasswordResetController extends Controller
             return response()->json(['message' => 'The code has expired. Please request a new one.'], 400);
         }
 
-        $user = User::where('email', $request->email)->first();
+        // Use the relationship to get the related user
+        $user = $resetRequest->user;  // This uses the 'user' relationship from the PasswordReset model
+
         if (!$user) {
             return response()->json(['message' => 'User not found.'], 404);
         }
 
+        // Reset the user's password
         $user->password = Hash::make($request->password);
         $user->save();
 
+        // Delete the reset request after successful password reset
         $resetRequest->delete();
 
         return response()->json(['message' => 'Password reset successfully.']);
