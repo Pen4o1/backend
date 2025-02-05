@@ -125,9 +125,9 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
         return $this->hasOne(ShoppingLists::class);
     }
 
-    public function daily_macros(): HasOne
+    public function daily_macros(): HasMany
     {
-        return $this->hasOne(DailyCal::class);
+        return $this->HasMany(DailyCal::class);
     }
 
     public function hasVerifiedEmail()
@@ -140,5 +140,10 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
         }
 
         return false;
+    }
+
+    public function passwordReset(): HasOne
+    {
+        return $this->hasOne(PasswordReset::class, 'email', 'email');
     }
 }

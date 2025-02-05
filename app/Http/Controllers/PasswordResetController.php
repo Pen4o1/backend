@@ -20,23 +20,19 @@ class PasswordResetController extends Controller
             'email' => 'required|email|exists:users,email',
         ]);
 
-        $code = rand(100000, 999999);
+        $user = User::where('email', $request->email)->firstOrFail();
 
-        // Set the expiration time for the code (e.g., 10 minutes)
+        $code = rand(100000, 999999);
         $expiresAt = Carbon::now()->addMinutes(10);
 
-        // Update or create the reset record with the token and expiration time
-        PasswordReset::updateOrCreate(
-            ['email' => $request->email],
-            [
-                'token' => $code,
-                'created_at' => Carbon::now(),
-                'expires_at' => $expiresAt,  // Set expiration time
-            ]
+        // Use the relationship to update or create a password reset record
+        $user->passwordReset()->updateOrCreate(
+            ['email' => $user->email],
+            ['token' => $code, 'expires_at' => $expiresAt]
         );
 
         // Send the reset email with the code
-        Mail::to($request->email)->send(new ResetPasswordMail($code));
+        Mail::to($user->email)->send(new ResetPasswordMail($code));
 
         return response()->json(['message' => 'Reset code sent to your email.']);
     }
@@ -46,31 +42,24 @@ class PasswordResetController extends Controller
      */
     public function resetPassword(Request $request)
     {
-        // Validate the request
         $request->validate([
             'email' => 'required|email|exists:users,email',
             'code' => 'required|digits:6',
             'password' => 'required|min:8',
         ]);
 
-        // Retrieve the reset request based on email and code
-        $resetRequest = PasswordReset::where('email', $request->email)
+        $user = User::where('email', $request->email)->firstOrFail();
+
+        $resetRequest = $user->passwordReset()
             ->where('token', $request->code)
             ->first();
-        
+
         if (!$resetRequest) {
             return response()->json(['message' => 'Invalid or expired code.'], 400);
         }
 
         if ($resetRequest->isExpired()) {
             return response()->json(['message' => 'The code has expired. Please request a new one.'], 400);
-        }
-
-        // Use the relationship to get the related user
-        $user = $resetRequest->user;  // This uses the 'user' relationship from the PasswordReset model
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found.'], 404);
         }
 
         // Reset the user's password
