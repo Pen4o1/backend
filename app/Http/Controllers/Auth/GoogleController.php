@@ -65,7 +65,7 @@ class GoogleController extends Controller
         return response()->json([
             'token' => $token,
             'user' => $user,
-            'redirect_url' => $this->getRedirectUrl($user),
+            'redirect_url' => '/home',
         ]);
     }
 
@@ -73,10 +73,10 @@ class GoogleController extends Controller
     {
         try {
             $response = Http::withToken($accessToken)
-                ->timeout(10)
                 ->get('https://people.googleapis.com/v1/people/me', [
                     'personFields' => 'birthdays,genders,names'
                 ]);
+            \Log::info($response);
 
             return $response->successful() ? $response->json() : [];
         } catch (\Exception $e) {
@@ -95,7 +95,9 @@ class GoogleController extends Controller
             'gender' => $this->extractGender($personData),
             'birthdate' => $this->extractBirthdate($personData),
             'password' => null,
-            'compleated' => $this->shouldCompleteProfile($payload, $personData),
+            'kilos' => null,
+            'height' => null,
+            'compleated' => false,
         ];
     }
 
@@ -127,18 +129,5 @@ class GoogleController extends Controller
             $birthdayData['month'], 
             $birthdayData['day']
         ) : null;
-    }
-
-    private function shouldCompleteProfile($payload, $personData)
-    {
-        return isset($payload['given_name']) && 
-               isset($payload['family_name']) && 
-               $this->extractBirthdate($personData) &&
-               $this->extractGender($personData);
-    }
-
-    private function getRedirectUrl($user)
-    {
-        return $user->compleated ? '/home' : '/complete-profile';
     }
 }

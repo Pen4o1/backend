@@ -12,6 +12,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use App\Models\UserGoal; 
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\MealPlans;
 use App\Models\DailyCal;
 use Illuminate\Contracts\Auth\MustVerifyEmail;

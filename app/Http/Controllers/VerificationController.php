@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Http\Controllers\Controller;
 use App\Mail\VerificationMail;
-use App\Models\EmailVerification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
@@ -19,18 +18,23 @@ class VerificationController extends Controller
             'email' => 'required|email|exists:users,email',
         ]);
 
-        // Generate a random verification code
-        $verificationCode = random_int(100000, 999999); 
-        $expiresAt = Carbon::now()->addMinutes(10); 
+        $user = User::where('email', $request->email)->firstOrFail();
 
-        // Update or create the verification record
-        $verification = EmailVerification::updateOrCreate(
-            ['email' => $request->email],
-            ['verification_code' => $verificationCode, 'expires_at' => $expiresAt]
+        // Generate a random verification code
+        $verificationCode = random_int(100000, 999999);
+        $expiresAt = Carbon::now()->addMinutes(10);
+
+        // Use the relationship to update or create a verification record
+        $user->emailVerification()->updateOrCreate(
+            ['email' => $user->email],
+            [
+                'verification_code' => $verificationCode,
+                'expires_at' => $expiresAt,
+            ]
         );
 
         // Send the verification email
-        Mail::to($request->email)->send(new VerificationMail($verificationCode));
+        Mail::to($user->email)->send(new VerificationMail($verificationCode));
 
         return response()->json(['message' => 'Verification code sent successfully.']);
     }
@@ -42,34 +46,24 @@ class VerificationController extends Controller
             'verification_code' => 'required|string',
         ]);
 
-        // Check if the verification code matches
-        $verification = EmailVerification::where('email', $request->email)
-            ->where('verification_code', $request->verification_code)
-            ->first();
+        $user = User::where('email', $request->email)->firstOrFail();
 
-        if (!$verification) {
+        $verification = $user->emailVerification;
+
+        if (!$verification || $verification->verification_code !== $request->verification_code) {
             return response()->json(['message' => 'Invalid verification code.'], 400);
         }
 
-        // Check if the code has expired
         if ($verification->isExpired()) {
             return response()->json(['message' => 'Verification code expired.'], 400);
         }
 
-        // Use the relationship to get the related user
-        $user = $verification->user; // This uses the 'user' relationship defined in the EmailVerification model
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found.'], 404);
-        }
-
-        // Mark the user's email as verified
+        // Verify the user's email
         $user->email_verified_at = now();
         $user->save();
-
-        // Delete the verification record after successful verification
         $verification->delete();
 
         return response()->json(['message' => 'Email verified successfully.']);
     }
 }
+
