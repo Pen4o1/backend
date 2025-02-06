@@ -73,10 +73,10 @@ class GoogleController extends Controller
     {
         try {
             $response = Http::withToken($accessToken)
+                ->timeout(10)
                 ->get('https://people.googleapis.com/v1/people/me', [
                     'personFields' => 'birthdays,genders,names'
                 ]);
-            \Log::info($response);
 
             return $response->successful() ? $response->json() : [];
         } catch (\Exception $e) {
@@ -87,7 +87,6 @@ class GoogleController extends Controller
 
     private function mapUserData($payload, $personData)
     {
-        \Log::info($this->extractBirthdate($personData));
         return [
             'first_name' => $payload['given_name'] ?? $this->extractFirstName($personData),
             'last_name' => $payload['family_name'] ?? $this->extractLastName($personData),
@@ -95,9 +94,7 @@ class GoogleController extends Controller
             'gender' => $this->extractGender($personData),
             'birthdate' => $this->extractBirthdate($personData),
             'password' => null,
-            'kilos' => null,
-            'height' => null,
-            'compleated' => false,
+            'compleated' => $this->shouldCompleteProfile($payload, $personData),
         ];
     }
 
@@ -129,5 +126,18 @@ class GoogleController extends Controller
             $birthdayData['month'], 
             $birthdayData['day']
         ) : null;
+    }
+
+    private function shouldCompleteProfile($payload, $personData)
+    {
+        $user = User::where('email', $payload['email'])->first();
+
+        return isset($payload['given_name']) && 
+               isset($payload['family_name']) && 
+               $this->extractBirthdate($personData) &&
+               $this->extractGender($personData) &&
+               $user && 
+               !empty($user->kilos) && 
+               !empty($user->height);
     }
 }
