@@ -39,13 +39,10 @@ class GoalController extends Controller
         // Calculate BMR (Basal Metabolic Rate) using Mifflin-St Jeor formula
         $bmr = $this->calculateBMR($currentWeight, $height, $age, $gender);
 
-        // Activity multiplier based on activity level
         $activityMultiplier = $this->getActivityMultiplier($activityLevel);
 
-        // Maintenance calories (BMR * activity multiplier)
         $maintenanceCalories = $bmr * $activityMultiplier;
 
-        // Determine goal and adjust calories using the provided function
         if ($targetWeight < $currentWeight) {
             $goal = 'lose';
         } elseif ($targetWeight > $currentWeight) {
@@ -109,7 +106,7 @@ class GoalController extends Controller
             'extra_active' => 1.9,
         ];
 
-        return $multipliers[$activityLevel] ?? 1.2;
+        return $multipliers[$activityLevel];
     }
 
     private function adjustCaloriesForGoal($maintenanceCalories, $goal)

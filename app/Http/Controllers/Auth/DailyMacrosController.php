@@ -11,7 +11,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 class DailyMacrosController extends Controller
 {
     public function storeCal(Request $request) {
-        $validate = $request->validate([
+        $request->validate([
             '*.consumed_cal' => 'required|numeric|min:1',
             '*.protein' => 'required|numeric|min:0',
             '*.fat' => 'required|numeric|min:0',

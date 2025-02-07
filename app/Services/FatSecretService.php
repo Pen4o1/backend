@@ -235,26 +235,4 @@ class FatSecretService
 
         return $upcA;
     }
-
-
-    /* this is for barcodes 
-    public function searchFoodsByBarcode($query)
-    {
-        $token = $this->getAccessToken();
-
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-        ])->get($this->apiUrl, [
-            'method' => 'foods.find_id_for_barcode',
-            'format' => 'json',
-            'search_expression' => $query,
-        ]);
-
-        if ($response->successful()) {
-            return $response->json();
-        }
-
-        throw new \Exception('Failed to search foods: ' . $response->body());
-    }
-    */
 }

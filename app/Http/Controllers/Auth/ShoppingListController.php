@@ -123,7 +123,6 @@ class ShoppingListController extends Controller
 
     private function parseIngredient(string $ingredient)
     {
-        // regex to extract quantity, unit if exists
         $pattern = '/^([\d\/.,\s]+)?\s*(\b(?:tsp|tbsp|cup|oz|g|ml|l|lb|kg)\b)?\s*(.*)$/i';
         if (preg_match($pattern, $ingredient, $matches)) {
             $quantity = $matches[1] ?? '';
@@ -184,11 +183,13 @@ class ShoppingListController extends Controller
     private function convertUnit($quantity, $fromUnit, $toUnit)
     {
         $conversionRates = [
-            'tsp' => ['tbsp' => 1 / 3, 'cup' => 1 / 48],
-            'tbsp' => ['tsp' => 3, 'cup' => 1 / 16],
-            'cup' => ['tsp' => 48, 'tbsp' => 16],
-            'oz' => ['g' => 28.3495],
-            'g' => ['oz' => 1 / 28.3495],
+            'tsp' => 5,
+            'tbsp' => 15,
+            'cup' => 240,
+            'oz' => 28,
+            'lb' => 454,
+            'kg' => 1000,
+            'g' => 1,
         ];
 
         if (isset($conversionRates[$fromUnit][$toUnit])) {
