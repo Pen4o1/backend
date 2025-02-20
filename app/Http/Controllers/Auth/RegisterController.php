@@ -121,6 +121,18 @@ class RegisterController extends Controller
             ], 422);
         }
 
+        $profile_picture_path = null;
+        if ($request->hasFile('profile_picture')) {
+            $request->validate([
+                'profile_picture' => 'image|mimes:jpeg,png,jpg|max:2048',
+            ]);
+
+            $file = $request->file('profile_picture');
+            $fileName = 'profile_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('profile_pictures', $fileName, 'public');
+            $profile_picture_path = 'storage/' . $path;
+        }
+
         $user = User::create([
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
@@ -131,6 +143,7 @@ class RegisterController extends Controller
             'height' => $request->height,
             'gender' => $request->gender, 
             'compleated' => true,
+            'profile_picture' => $profile_picture_path,
         ]);
         
         try {
