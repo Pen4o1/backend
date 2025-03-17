@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Google\Client as GoogleClient;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Carbon\Carbon;
 use Log;
 
 class GoogleController extends Controller
@@ -48,10 +49,14 @@ class GoogleController extends Controller
         // Get additional user data
         $personData = $this->getGooglePersonData($accessToken);
 
-        // Create or update user
+        $user = User::where('email', $payload['email'])->first();
+
         $user = User::updateOrCreate(
             ['email' => $payload['email']],
-            $this->mapUserData($payload, $personData)
+            array_merge(
+                $this->mapUserData($payload, $personData),
+                ['email_verified_at' => $user ? $user->email_verified_at : now()]
+            )
         );
 
         // Generate JWT
@@ -61,6 +66,8 @@ class GoogleController extends Controller
             Log::error('JWT generation failed: ' . $e->getMessage());
             return response()->json(['message' => 'Could not create token'], 500);
         }
+
+        \Log::info('User logged in with Google:', ['user' => $user]);
 
         return response()->json([
             'token' => $token,
