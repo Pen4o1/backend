@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('user_goals', function (Blueprint $table) {
-            $table->integer('target_weight')->after('goal');
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('password')->nullable()->change();
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('user_goals', function (Blueprint $table) {
-            $table->dropColumn('target_weight');
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('password')->nullable(false)->change();
         });
     }
 };

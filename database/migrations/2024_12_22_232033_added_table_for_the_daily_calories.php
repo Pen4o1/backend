@@ -26,7 +26,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('daily_cal', function (Blueprint $table) {
-            DropIfExists('daily_cal');
+            Schema::dropIfExists('daily_cal');
         });
     }
 };
