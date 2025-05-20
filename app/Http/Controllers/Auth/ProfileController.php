@@ -91,27 +91,27 @@ class ProfileController extends Controller
             return response()->json(['error' => 'User not authenticated'], 401);
         }
 
-        $request->validate([
+         $request->validate([
             'profile_picture' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        // Get file from request
+        if (!$request->hasFile('profile_picture')) {
+            return response()->json(['error' => 'No file uploaded'], 400);
+        }
+
         $file = $request->file('profile_picture');
 
-        // Generate unique file name with timestamp
         $fileName = 'profile_' . time() . '.' . $file->getClientOriginalExtension();
 
-        // Store the file in the storage/app/public/profile_pictures directory
-        $path = $request->file('profile_picture')->storeAs('profile_pictures', $fileName, 'public');
+        $path = $file->storeAs('profile_pictures', $fileName, 'public');
 
-        // Save the path in the database
-        $user->profile_picture = 'storage/profile_pictures/' . $fileName;
+        $user->profile_picture = 'storage/' . $path;
         $user->save();
 
         return response()->json([
             'message' => 'Profile picture uploaded successfully',
-            'profile_picture_url' => asset($user->profile_picture),
-        ]);
+            'profile_picture_url' => asset('storage/' . $path),
+        ], 200);
     }
 
     public function getProfile(Request $request) {
@@ -121,7 +121,7 @@ class ProfileController extends Controller
             'first_name' => $user->first_name,
             'last_name' => $user->last_name,
             'email' => $user->email,
-            'profile_picture' => asset($user->profile_picture), // Return full URL
+            'profile_picture' => asset($user->profile_picture),
         ]);
     }   
 }

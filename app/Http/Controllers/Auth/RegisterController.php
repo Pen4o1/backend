@@ -8,15 +8,14 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class RegisterController extends Controller
 {
     public function Register(Request $request)
     {
         $profile_validator = Validator::make($request->all(), [
-            'profileImage' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $first_name_validator = Validator::make($request->all(), [
@@ -126,13 +125,23 @@ class RegisterController extends Controller
             ], 422);
         }
 
+        if ($profile_validator->fails()) {
+            return response()->json([
+                'message' => 'Invalid profile image',
+                'errors' => $profile_validator->errors()
+            ], 422);
+        }
+
+
+        $fileName = null;
         $profile_picture_path = null;
 
-        $file = $request->file('profile_picture');
+        if ($request->hasFile('profile_picture')) {
+            $file = $request->file('profile_picture');
+            $fileName = 'profile_' . time() . '.' . $file->getClientOriginalExtension();
 
-        $fileName = 'profile_' . time() . '.' . $file->getClientOriginalExtension();
-
-        $path = $request->file('profile_picture')->storeAs('profile_pictures', $fileName, 'public');
+            $profile_picture_path = $file->storeAs('profile_pictures', $fileName, 'public');
+        }
 
         $user = User::create([
             'first_name' => $request->first_name,
@@ -144,7 +153,7 @@ class RegisterController extends Controller
             'height' => $request->height,
             'gender' => $request->gender, 
             'compleated' => true,
-            'profile_picture' => 'storage/profile_pictures/' . $fileName ?? NULL,
+            'profile_picture' => $profile_picture_path ? 'storage/' . $profile_picture_path : null,
         ]);
         \Log::info($user);
 

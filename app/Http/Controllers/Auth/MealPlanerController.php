@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Services\FatSecretService;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -104,7 +103,6 @@ class MealPlanerController extends Controller
                         'calories.to' => intval(round($caloriesTo / 2)),
                         'sort_by' => 'caloriesPerServingAscending',
                     ];
-                    \Log::info($adjustedFilters);   
 
                     while ($combinedCalories < $caloriesFrom) {
                         $additionalRecipes = $this->getRecipes($adjustedFilters);
