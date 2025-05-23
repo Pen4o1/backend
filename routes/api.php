@@ -5,8 +5,6 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Route;
 use Tymon\JWTAuth\Facades\JWTAuth;
-use App\Models\User;
-use App\Models\UserGoal;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Auth\GoalController;
 use App\Http\Controllers\Auth\DailyMacrosController;
@@ -88,6 +86,7 @@ Route::middleware([JwtAuthenticate::class])->group(function () {
     Route::post('/change/password', [ProfileController::class, 'changePassword']);
     Route::post('/upload-profile-picture', [ProfileController::class, 'uploadProfilePicture']);
     Route::post('/update/shopping/item', [ShoppingListController::class, 'updateShoppingItem']);
+    Route::post('/clear/bought/items', [ShoppingListController::class, 'clearBoughtItems']);
 });
 
 
