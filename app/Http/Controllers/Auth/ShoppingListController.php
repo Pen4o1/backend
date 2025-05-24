@@ -93,7 +93,6 @@ class ShoppingListController extends Controller
 
         $combinedIngredients = $this->combineIngredients($shoppingList);
 
-        // 🔥 Fetch the existing shopping list for this user (if it exists)
         $existingEntry = $user->shopping_list()->first();
         $existingList = [];
         if ($existingEntry && is_string($existingEntry->shopping_list)) {
@@ -227,13 +226,28 @@ class ShoppingListController extends Controller
     private function convertUnit($quantity, $fromUnit, $toUnit)
     {
         $conversionRates = [
-            'tsp' => 5,
-            'tbsp' => 15,
-            'cup' => 240,
-            'oz' => 28,
-            'lb' => 454,
-            'kg' => 1000,
-            'g' => 1,
+            'g' => [
+                'kg' => 0.001,
+                'g' => 1,
+            ],
+            'kg' => [
+                'g' => 1000,
+                'kg' => 1,
+            ],
+            'tsp' => [
+                'ml' => 5,
+            ],
+            'tbsp' => [
+                'ml' => 15,
+            ],
+            'cup' => [
+                'ml' => 240,
+            ],
+            'ml' => [
+                'tsp' => 1/5,
+                'tbsp' => 1/15,
+                'cup' => 1/240,
+            ],
         ];
 
         if (isset($conversionRates[$fromUnit][$toUnit])) {

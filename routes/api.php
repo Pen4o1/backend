@@ -11,7 +11,6 @@ use App\Http\Controllers\Auth\DailyMacrosController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Auth\MealPlanerController;
 use App\Http\Controllers\FatSecretController;
-use App\Http\Controllers\Auth\TestForRecipes;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\Auth\ShoppingListController;
 use App\Http\Controllers\Auth\ProfileController;
@@ -82,7 +81,6 @@ Route::middleware([JwtAuthenticate::class])->group(function () {
     Route::post('/generate/meal/plan', [MealPlanerController::class, 'generateMealPlan']);
     Route::get('/get/meal/plan', [MealPlanerController::class, 'getMealPlan']); 
     Route::get('/get/shopping/list', [ShoppingListController::class, 'getShoppingPlan']);
-    Route::post('/get-meal', [TestForRecipes::class, 'getMeal']);
     Route::post('/change/password', [ProfileController::class, 'changePassword']);
     Route::post('/upload-profile-picture', [ProfileController::class, 'uploadProfilePicture']);
     Route::post('/update/shopping/item', [ShoppingListController::class, 'updateShoppingItem']);
@@ -94,8 +92,4 @@ Route::controller(GoogleController::class)->group(function () {
     Route::get('auth/google', 'redirectToGoogle');
     Route::get('auth/callback', 'handleGoogleCallback');
     Route::post('web/google-login', 'handleGoogleLogin');
-});
-
-Route::middleware(['auth:sanctum', \Fruitcake\Cors\HandleCors::class])->get('/user', function (Request $request) {
-    return $request->user();
 });
