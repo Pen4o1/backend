@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Google\Client as GoogleClient;
 use Tymon\JWTAuth\Facades\JWTAuth;
-use Carbon\Carbon;
 use Log;
 
 class GoogleController extends Controller
