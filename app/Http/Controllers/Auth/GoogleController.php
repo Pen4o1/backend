@@ -26,8 +26,6 @@ class GoogleController extends Controller
         $client = new GoogleClient();
         $allowedClientIds = [
             config('services.google.web_client_id'),
-            config('services.google.ios_client_id'),
-            config('services.google.android_client_id')
         ];
 
         $payload = null;
@@ -54,7 +52,7 @@ class GoogleController extends Controller
             ['email' => $payload['email']],
             array_merge(
                 $this->mapUserData($payload, $personData),
-                ['email_verified_at' => $user ? $user->email_verified_at : now()]
+                ['email_verified_at' => now()]
             )
         );
 
@@ -66,7 +64,7 @@ class GoogleController extends Controller
             return response()->json(['message' => 'Could not create token'], 500);
         }
 
-        \Log::info('User logged in with Google:', ['user' => $user]);
+        Log::info('User logged in with Google:', ['user' => $user]);
 
         return response()->json([
             'token' => $token,

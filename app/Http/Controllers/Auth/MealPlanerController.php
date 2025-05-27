@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\FatSecretService;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Log;
 
 
 class MealPlanerController extends Controller
@@ -69,7 +70,7 @@ class MealPlanerController extends Controller
         $recipes = $this->getRecipes($filters);
 
         for ($i = 0; $i < $mealsPerDay; $i++) {
-            \Log::info("Selecting recipe for meal " . ($i + 1), [
+            Log::info("Selecting recipe for meal " . ($i + 1), [
                 'calories_from' => $caloriesFrom,
                 'calories_to' => $caloriesTo,
             ]);
@@ -80,7 +81,7 @@ class MealPlanerController extends Controller
                 // Attempt to add a single recipe
                 foreach ($recipes as $recipe) {
                     if (!isset($recipe['recipe_id']) || !isset($recipe['recipe_nutrition']['calories'])) {
-                        \Log::warning("Invalid recipe data", ['recipe' => $recipe]);
+                        Log::warning("Invalid recipe data", ['recipe' => $recipe]);
                         continue;
                     }
 
@@ -94,7 +95,7 @@ class MealPlanerController extends Controller
 
                 // If single recipe isnt found to attempt to combine recipes
                 if (!$recipeAdded) {
-                    \Log::info("No single recipe found for meal, attempting to find combined recipes.");
+                    Log::info("No single recipe found for meal, attempting to find combined recipes.");
 
                     $combinedCalories = 0;
                     $selectedRecipes = [];
@@ -109,7 +110,7 @@ class MealPlanerController extends Controller
 
                         foreach ($additionalRecipes as $additionalRecipe) {
                             if (!isset($additionalRecipe['recipe_id']) || !isset($additionalRecipe['recipe_nutrition']['calories'])) {
-                                \Log::warning("Skipping invalid recipe during combination", ['recipe' => $additionalRecipe]);
+                                Log::warning("Skipping invalid recipe during combination", ['recipe' => $additionalRecipe]);
                                 continue;
                             }
 
@@ -132,7 +133,7 @@ class MealPlanerController extends Controller
 
                         // Stop attempting if the calorie range is too low
                         if ($adjustedFilters['calories.from'] < 50) {
-                            \Log::warning("Calorie range too low to find recipes");
+                            Log::warning("Calorie range too low to find recipes");
                             break;
                         }
                     }
@@ -153,7 +154,7 @@ class MealPlanerController extends Controller
                     $recipeAdded = true;
                 }
             } catch (\Exception $e) {
-                \Log::error("Error adding recipe for meal " . ($i + 1), [
+                Log::error("Error adding recipe for meal " . ($i + 1), [
                     'message' => $e->getMessage(),
                     'calories_from' => $caloriesFrom,
                     'calories_to' => $caloriesTo,
@@ -162,7 +163,7 @@ class MealPlanerController extends Controller
             }
 
             if (!$recipeAdded) {
-                \Log::warning("No recipe found or reused for meal " . ($i + 1));
+                Log::warning("No recipe found or reused for meal " . ($i + 1));
             }
         }
 
@@ -177,14 +178,14 @@ class MealPlanerController extends Controller
     {
         $recipesResponse = $this->fatSecretService->searchRecipes('', $filters);
 
-        \Log::info("Recipes fetched", ['recipesResponse' => $recipesResponse]);
+        Log::info("Recipes fetched", ['recipesResponse' => $recipesResponse]);
 
         if (
             !isset($recipesResponse['recipes']['recipe']) ||
             !is_array($recipesResponse['recipes']['recipe']) ||
             empty($recipesResponse['recipes']['recipe'])
         ) {
-            \Log::warning("No recipes found for filters", ['filters' => $filters]);
+            Log::warning("No recipes found for filters", ['filters' => $filters]);
             return [];
         }
 
