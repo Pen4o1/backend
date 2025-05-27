@@ -108,7 +108,7 @@ class ProfileController extends Controller
 
         return response()->json([
             'message' => 'Profile picture uploaded successfully',
-            'profile_picture_url' => asset('storage/' . $path),
+            'profile_picture_url' => secure_asset('storage/' . $path),
         ], 200);
     }
 
@@ -119,7 +119,7 @@ class ProfileController extends Controller
             'first_name' => $user->first_name,
             'last_name' => $user->last_name,
             'email' => $user->email,
-            'profile_picture' => asset($user->profile_picture),
+            'profile_picture' => secure_asset($user->profile_picture),
         ]);
     }   
 }

@@ -13,27 +13,21 @@ class ShoppingListController extends Controller
         // Get the authenticated user
         $user = JWTAuth::user();
 
-        // Get the item ID and bought status from the request
-        $itemId = $request->input('id');  // The ID of the item to update
-        $boughtStatus = $request->input('bought');  // The new "bought" status
+        $itemId = $request->input('id');
+        $boughtStatus = $request->input('bought');
 
-        // Retrieve the shopping list entry for the user
         $shoppingListEntry = $user->shopping_list()->first();
 
-        // Check if the shopping list exists
         if (!$shoppingListEntry) {
             return response()->json(['error' => 'Shopping list not found'], 404);
         }
 
-        // Get the existing shopping list
         $shoppingList = $shoppingListEntry->shopping_list;
 
-        // Ensure it's an array (in case it was stored as JSON)
         if (!is_array($shoppingList)) {
             $shoppingList = json_decode($shoppingList, true);
         }
 
-        // Find the item and update its "bought" status
         $itemFound = false;
         foreach ($shoppingList as &$item) {
             if ($item['id'] == $itemId) {
@@ -48,10 +42,15 @@ class ShoppingListController extends Controller
             return response()->json(['error' => 'Item not found in shopping list'], 404);
         }
 
-        // Sort the shopping list so that bought items appear at the top
+        // Sort the shopping list so that bought items appear at the bottom
         usort($shoppingList, function ($a, $b) {
-            return $b['bought'] - $a['bought']; // Sort by "bought" status, bought items come first
+            return $a['bought'] - $b['bought']; // bought items come last
         });
+
+        // Reassign IDs after sorting to keep them consistent
+        foreach ($shoppingList as $index => &$item) {
+            $item['id'] = $index + 1;
+        }
 
         // Update the shopping list entry in the database
         $shoppingListEntry->update([
@@ -64,8 +63,6 @@ class ShoppingListController extends Controller
             'shopping_list' => $shoppingList,
         ]);
     }
-
-
 
     public function getShoppingPlan()
     {
@@ -110,6 +107,16 @@ class ShoppingListController extends Controller
             $ingredientName = strtolower($ingredient['name']);
             $ingredient['bought'] = $boughtMap[$ingredientName] ?? false;
             $ingredient['id'] = $key + 1;
+        }
+
+        // Sort so that bought items appear at the bottom
+        usort($combinedIngredients, function ($a, $b) {
+            return $a['bought'] - $b['bought'];
+        });
+
+        // Reassign IDs after sorting
+        foreach ($combinedIngredients as $index => &$ingredient) {
+            $ingredient['id'] = $index + 1;
         }
 
         $user->shopping_list()->updateOrCreate(

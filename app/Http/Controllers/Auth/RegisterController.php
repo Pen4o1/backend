@@ -15,7 +15,7 @@ class RegisterController extends Controller
     public function Register(Request $request)
     {
         $profile_validator = Validator::make($request->all(), [
-            'profile_picture' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'profile_picture' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $first_name_validator = Validator::make($request->all(), [
